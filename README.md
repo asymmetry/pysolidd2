@@ -1,1 +1,1 @@
-# pysolidd2
+# Scripts for SoLID g2p/d2p Proposal
