@@ -28,11 +28,11 @@ def _r(x, q2):
     return (ra + rb + rc) / 3
 
 
-def f1p(x, q2):
+def f1p_slac(x, q2):
     return f2p(x, q2) * (1 + 4 * _m_p**2 * x**2 / q2) / (2 * x * (1 + _r(x, q2)))
 
 
-def f2p(x, q2):
+def f2p_slac(x, q2):
     # NMC
     # Phys. Lett. B364(1995)107
     a = [0, -0.02778, 2.926, 1.0362, -1.840, 8.123, -13.074, 6.215]
@@ -48,25 +48,56 @@ def f2p(x, q2):
     return ax * (numpy.log(q2 / gamma2) / numpy.log(20 / gamma2))**bx * (1 + cx / q2)
 
 
-def g1p(x, q2):
+def g1p_slac(x, q2):
     # SLAC E155
     # Phys. Lett. B493(2000)19, Eq.(5)
     return x**0.700 * (0.817 + 1.014 * x - 1.489 * x**2) * (1 - 0.04 / q2) * f1p(x, q2)
 
 
-def g2p(x, q2, ww=True):
+def g2p_slac(x, q2):
     # only have g2ww at this moment
     if numpy.isscalar(x):
         if x > 0:
-            result = -g1p(x, q2) + integrate.quad(lambda y: g1p(y, q2) / y, x, 1)
+            result = -g1p_slac(x, q2) + integrate.quad(lambda y: g1p_slac(y, q2) / y, x, 1)
         else:
             result = numpy.inf
     else:
         result = numpy.empty_like(x)
         for (xx, rr) in numpy.nditer([x, result], [], [['readonly'], ['writeonly']]):
             if xx > 0:
-                rr[...] = -g1p(xx, q2) + integrate.quad(lambda y: g1p(y, q2) / y, xx, 1)[0]
+                rr[...] = -g1p_slac(xx, q2) + integrate.quad(lambda y: g1p_slac(y, q2) / y, xx, 1)[0]
             else:
                 rr = numpy.inf
 
     return result
+
+
+def f1p(x, q2, *, model='slac', **kwargs):
+    f1p_func = {
+        'slac': f1p_slac,
+    }.get(model, None)
+
+    return f1p_func(x, q2, **kwargs)
+
+
+def f2p(x, q2, *, model='slac', **kwargs):
+    f2p_func = {
+        'slac': f2p_slac,
+    }.get(model, None)
+
+    return f2p_func(x, q2, **kwargs)
+
+
+def g1p(x, q2, *, model='slac', **kwargs):
+    g1p_func = {
+        'slac': g1p_slac,
+    }.get(model, None)
+
+    return g1p_func(x, q2, **kwargs)
+
+def g2p(x, q2, *, model='slac', **kwargs):
+    g2p_func = {
+        'slac': g2p_slac,
+    }.get(model, None)
+
+    return g2p_func(x, q2, **kwargs)

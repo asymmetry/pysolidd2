@@ -4,7 +4,7 @@ from matplotlib.backends.backend_pdf import PdfPages
 import matplotlib.pyplot as plt
 import numpy
 
-from pysolidg2p import str_funcs
+from pysolidg2p.structure_f import g1p, g2p
 
 x = numpy.linspace(0, 1, 101)
 
@@ -16,10 +16,10 @@ with PdfPages('x2g1g2.pdf') as pdf:
     plt.ylabel(r'$x^2g_2$')
     plt.xlim(0, 1)
     plt.ylim(-0.03, 0.01)
-    plt.plot(x, x**2 * str_funcs.g2p(x, 3), 'k-')  # q2 = 3
-    plt.plot(x, x**2 * str_funcs.g2p(x, 4), 'r-')  # q2 = 4
-    plt.plot(x, x**2 * str_funcs.g2p(x, 5), 'g-')  # q2 = 5
-    plt.plot(x, x**2 * str_funcs.g2p(x, 6), 'b-')  # q2 = 6
+    plt.plot(x, x**2 * g2p(x, 3), 'k-')  # q2 = 3
+    plt.plot(x, x**2 * g2p(x, 4), 'r-')  # q2 = 4
+    plt.plot(x, x**2 * g2p(x, 5), 'g-')  # q2 = 5
+    plt.plot(x, x**2 * g2p(x, 6), 'b-')  # q2 = 6
     pdf.savefig(bbox_inches='tight')
     plt.close()
 
@@ -30,9 +30,9 @@ with PdfPages('x2g1g2.pdf') as pdf:
     plt.ylabel(r'$x^2g_1$')
     plt.xlim(0, 1)
     plt.ylim(-0.005, 0.035)
-    plt.plot(x, x**2 * str_funcs.g1p(x, 3), 'k-')  # q2 = 3
-    plt.plot(x, x**2 * str_funcs.g1p(x, 4), 'r-')  # q2 = 4
-    plt.plot(x, x**2 * str_funcs.g1p(x, 5), 'g-')  # q2 = 5
-    plt.plot(x, x**2 * str_funcs.g1p(x, 6), 'b-')  # q2 = 6
+    plt.plot(x, x**2 * g1p(x, 3), 'k-')  # q2 = 3
+    plt.plot(x, x**2 * g1p(x, 4), 'r-')  # q2 = 4
+    plt.plot(x, x**2 * g1p(x, 5), 'g-')  # q2 = 5
+    plt.plot(x, x**2 * g1p(x, 6), 'b-')  # q2 = 6
     pdf.savefig(bbox_inches='tight')
     plt.close()
