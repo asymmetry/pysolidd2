@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 
+import pickle
+
 from matplotlib.backends.backend_pdf import PdfPages
 import matplotlib.pyplot as plt
 import numpy
@@ -14,8 +16,8 @@ _inv_gev_to_fm = _inv_fm_to_gev
 _inv_gev_to_mkb = _inv_gev_to_fm**2 * 1e4
 
 e = 11
-binning = {'bins': 12, 'range': (0.2, 0.8)}
-yield_limit = 1000
+binning = {'bins': 20, 'range': (0.0, 1.0)}
+yield_limit = 10000
 
 
 def create_bins():
@@ -39,10 +41,10 @@ for i, _ in enumerate(q2_list):
     yield_ = numpy.zeros_like(x)
 
     for j, _ in enumerate(x):
-        q2_x = q2_raw[(x_raw > x_edges[j]) & (x_raw < x_edges[j + 1])]
-        yield_x = yield_raw[(x_raw > x_edges[j]) & (x_raw < x_edges[j + 1])]
+        q2_x = q2_raw[(x_raw >= x_edges[j]) & (x_raw < x_edges[j + 1])]
+        yield_x = yield_raw[(x_raw >= x_edges[j]) & (x_raw < x_edges[j + 1])]
 
-        yield_[j] = numpy.sum(yield_x[(q2_x > q2_edges[i]) & (q2_x < q2_edges[i + 1])])
+        yield_[j] = numpy.sum(yield_x[(q2_x >= q2_edges[i]) & (q2_x < q2_edges[i + 1])])
 
     q2 = q2_list[i]
     ep_min = q2 / (4 * 11)
@@ -76,14 +78,12 @@ for i, _ in enumerate(q2_list):
     C2 = dxsT / sigma0
     D = A1 * B2 - A2 * B1
     #g1 = (C1 * B2 - C2 * B1) / D
-    g2 = (A1 * C2 - A2 * C1) / D
+    g2 = (-C1 * A2 + C2 * A1) / D
 
     eC1 = edxsL / sigma0
     eC2 = edxsT / sigma0
     eg1 = numpy.sqrt((eC1 * B2 / D)**2 + (eC2 * B1 / D)**2)
     eg2 = numpy.sqrt((eC1 * A2 / D)**2 + (eC2 * A1 / D)**2)
-
-    print(x, q2, g2, eg2)
 
     sub_result = {}
     sub_result['x'] = x
@@ -91,6 +91,9 @@ for i, _ in enumerate(q2_list):
     sub_result['g2'] = g2
     sub_result['eg2'] = eg2
     result[str(q2_list[i])] = sub_result
+
+with open('g2.pkl', 'wb') as f:
+    pickle.dump(result, f)
 
 x_model = numpy.linspace(0, 1, 201)
 
