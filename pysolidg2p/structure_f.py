@@ -30,7 +30,8 @@ def _r(x, q2):
 
 def f1p_slac(x, q2):
     return f2p(x, q2) * (1 + 4 * _m_p**2 * x**2 / q2) / (2 * x * (1 + _r(x, q2)))
-
+def df1p_slac(x, q2):
+    return  df1p=sqrt((df2p*(1+gamma2)/(2*xbj*(1+r1998(xbj,qmu2))))**2.+(f2p*(1+gamma2)/(2*xbj)/(1+r1998(xbj,qmu2))**2.**dr1998(xbj,qmu2))**2.)
 
 def f2p_slac(x, q2):
     # NMC
