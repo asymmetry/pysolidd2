@@ -27,12 +27,12 @@ def _r(x, q2):
 
     return (ra + rb + rc) / 3
 
-
+def d_r(x, q2):
+    return 0.0078-0.013*x+(0.070-0.39*x+0.70*x*x)/(1.7+q2);
 def f1p_slac(x, q2):
     return f2p(x, q2) * (1 + 4 * _m_p**2 * x**2 / q2) / (2 * x * (1 + _r(x, q2)))
 def df1p_slac(x, q2):
-    return  df1p=sqrt((df2p*(1+gamma2)/(2*xbj*(1+r1998(xbj,qmu2))))**2.+(f2p*(1+gamma2)/(2*xbj)/(1+r1998(xbj,qmu2))**2.**dr1998(xbj,qmu2))**2.)
-
+    return sqrt((df2p*(1+4 * _m_p**2 * x**2 / q2)/(2*x*(1+_r(x,q2))))**2.+(f2p(x, q2)*(1+4 * _m_p**2 * x**2 / q2)/(2*x)/(1+_r(x,q2))**2.**_r(x,q2))**2.
 def f2p_slac(x, q2):
     # NMC
     # Phys. Lett. B364(1995)107
@@ -47,7 +47,12 @@ def f2p_slac(x, q2):
     gamma2 = 0.25**2
 
     return ax * (numpy.log(q2 / gamma2) / numpy.log(20 / gamma2))**bx * (1 + cx / q2)
-
+def f2p_pdf(x, q2):
+    return x*((2./3)**2*(u+ubar)+(1./3)**2.*(d+dbar)+(1./3)**2.*2*s)
+                
+def df2p_pdf(x,q2):
+    return x*sqrt((2./3)**4*(du**2.+dubar**2.)+(1./3)**4.*(dd**2.+ddbar**2.)+(1./3)**4.*4*ds**2)
+                
 
 def g1p_slac(x, q2):
     # SLAC E155
@@ -79,7 +84,13 @@ def f1p(x, q2, *, model='slac', **kwargs):
     }.get(model, None)
 
     return f1p_func(x, q2, **kwargs)
+                
+def df1p(x, q2, *, model='slac', **kwargs):
+    df1p_func = {
+        'slac': df1p_slac,
+    }.get(model, None)
 
+    return df1p_func(x, q2, **kwargs)
 
 def f2p(x, q2, *, model='slac', **kwargs):
     f2p_func = {
@@ -87,8 +98,22 @@ def f2p(x, q2, *, model='slac', **kwargs):
     }.get(model, None)
 
     return f2p_func(x, q2, **kwargs)
+                
+def f2p_pdf(x, q2, *, model='pdf', **kwargs):
+    f2p_pdffunc = {
+        'pdf': f2p_pdf,
+    }.get(model, None)
 
+    return f2p_pdffunc(x, q2, **kwargs)
+                
+def df2p_pdf(x, q2, *, model='pdf', **kwargs):
+    df2p_pdffunc = {
+        'pdf': df2p_pdf,
+    }.get(model, None)
 
+    return df2p_pdffunc(x, q2, **kwargs)
+                
+                
 def g1p(x, q2, *, model='slac', **kwargs):
     g1p_func = {
         'slac': g1p_slac,
