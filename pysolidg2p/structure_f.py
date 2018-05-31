@@ -31,8 +31,12 @@ def d_r(x, q2):
     return 0.0078-0.013*x+(0.070-0.39*x+0.70*x*x)/(1.7+q2);
 def f1p_slac(x, q2):
     return f2p(x, q2) * (1 + 4 * _m_p**2 * x**2 / q2) / (2 * x * (1 + _r(x, q2)))
-def df1p_slac(x, q2):
-    return sqrt((df2p*(1+4 * _m_p**2 * x**2 / q2)/(2*x*(1+_r(x,q2))))**2.+(f2p(x, q2)*(1+4 * _m_p**2 * x**2 / q2)/(2*x)/(1+_r(x,q2))**2.**_r(x,q2))**2.
+
+def f1p_pdf(x, q2):
+    return f2p_pdf(x, q2) * (1 + 4 * _m_p**2 * x**2 / q2) / (2 * x * (1 + _r(x, q2)))
+
+def df1p_pdf(x, q2):
+    return sqrt((df2p_pdf*(1+4 * _m_p**2 * x**2 / q2)/(2*x*(1+_r(x,q2))))**2.+(f2p(x, q2)*(1+4 * _m_p**2 * x**2 / q2)/(2*x*(1+_r(x,q2))**2.)*d_r(x,q2))**2.)
 def f2p_slac(x, q2):
     # NMC
     # Phys. Lett. B364(1995)107
@@ -85,12 +89,12 @@ def f1p(x, q2, *, model='slac', **kwargs):
 
     return f1p_func(x, q2, **kwargs)
                 
-def df1p(x, q2, *, model='slac', **kwargs):
-    df1p_func = {
-        'slac': df1p_slac,
+def df1p_pdf(x, q2, *, model='pdf', **kwargs):
+    df1p_pdffunc = {
+        'pdf': df1p_pdf,
     }.get(model, None)
 
-    return df1p_func(x, q2, **kwargs)
+    return df1p_pdffunc(x, q2, **kwargs)
 
 def f2p(x, q2, *, model='slac', **kwargs):
     f2p_func = {
