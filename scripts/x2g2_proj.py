@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 
 import pickle
 
@@ -7,20 +7,26 @@ import matplotlib.pyplot as plt
 import numpy
 from scipy import constants
 
-from pysolidg2p import asymmetry, cross_section, sim_reader, structure_f
+from pysolidg2p import asymmetry, cross_section, sim_reader, structure_f, tools
 
-_alpha = constants.alpha
 _m_p = constants.value('proton mass energy equivalent in MeV') * 1e-3
-_inv_fm_to_gev = constants.hbar * constants.c / constants.e * 1e6
-_inv_gev_to_fm = _inv_fm_to_gev
-_inv_gev_to_mkb = _inv_gev_to_fm**2 * 1e4
+
+#
+# input parameters
+#
 
 e = 11
-binning = {'bins': 20, 'range': (0.0, 1.0)}
+x_binning = {'bins': 20, 'range': (0.0, 1.0)}
+q2_list = [2, 3, 4, 5, 6]
+q2_edges = [1.5, 2.5, 3.5, 4.5, 5.5, 6.5]
 yield_limit = 10000
 
+#
+# tool functions
+#
 
-def create_bins():
+
+def create_bins(binning):
     bins = binning['bins']
     bin_low, bin_high = binning['range']
     bin_centers = numpy.linspace(bin_low + (bin_high - bin_low) / bins / 2, bin_high - (bin_high - bin_low) / bins / 2, bins)
@@ -29,15 +35,16 @@ def create_bins():
     return bin_centers, bin_edges
 
 
-x_raw, q2_raw, yield_raw = sim_reader.load('yield.txt')
+#
+# main program
+#
 
-q2_list = [2, 3, 4, 5, 6]
-q2_edges = [1.5, 2.5, 3.5, 4.5, 5.5, 6.5]
+x_raw, q2_raw, yield_raw = sim_reader.load('yield.txt')
 
 result = {}
 
 for i, _ in enumerate(q2_list):
-    x, x_edges = create_bins()
+    x, x_edges = create_bins(x_binning)
     yield_ = numpy.zeros_like(x)
 
     for j, _ in enumerate(x):
@@ -65,25 +72,7 @@ for i, _ in enumerate(q2_list):
     dxsL = cross_section.dxslp(e, x, q2)  # from model
     edxsL = 0
 
-    nu = q2 / (2 * _m_p * x)
-    ep = e - nu
-    theta = 2 * numpy.arcsin(numpy.sqrt(q2 / (4 * e * ep)))
-    sigma0 = 4 * _alpha**2 * ep / (nu * _m_p * q2 * e) * _inv_gev_to_mkb
-
-    A1 = (e + ep * numpy.cos(theta))
-    B1 = -2 * _m_p * x
-    C1 = dxsL / sigma0
-    A2 = ep * numpy.sin(theta)
-    B2 = 2 * e * ep * numpy.sin(theta) / nu
-    C2 = dxsT / sigma0
-    D = A1 * B2 - A2 * B1
-    #g1 = (C1 * B2 - C2 * B1) / D
-    g2 = (-C1 * A2 + C2 * A1) / D
-
-    eC1 = edxsL / sigma0
-    eC2 = edxsT / sigma0
-    eg1 = numpy.sqrt((eC1 * B2 / D)**2 + (eC2 * B1 / D)**2)
-    eg2 = numpy.sqrt((eC1 * A2 / D)**2 + (eC2 * A1 / D)**2)
+    g1, g2, eg1, eg2 = tools.dxs_to_g1g2(e, x, q2, dxsL, dxsT, edxsL, edxsT)
 
     sub_result = {}
     sub_result['x'] = x
@@ -91,6 +80,10 @@ for i, _ in enumerate(q2_list):
     sub_result['g2'] = g2
     sub_result['eg2'] = eg2
     result[str(q2_list[i])] = sub_result
+
+#
+# output
+#
 
 with open('g2.pkl', 'wb') as f:
     pickle.dump(result, f)

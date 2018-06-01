@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 
 __version__ = '1.0.0'
 
@@ -6,5 +6,6 @@ from . import asymmetry
 from . import cross_section
 from . import structure_f
 from . import sim_reader
+from . import tools
 
-__all__ = ['asymmetry', 'cross_section', 'structure_f', 'sim_reader']  # modules
+__all__ = ['asymmetry', 'cross_section', 'structure_f', 'sim_reader', 'tools']  # modules
