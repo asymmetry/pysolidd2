@@ -1,10 +1,12 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 
 # For python 2-3 compatibility
 from __future__ import division, print_function
 
 import numpy
 from scipy import constants, integrate
+
+import lhapdf
 
 __all__ = ['f1p', 'f2p', 'g1p', 'g2p']
 
@@ -25,11 +27,61 @@ def _r(x, q2):
     q2thr = c[4] * x + c[5] * x**2 + c[6] * x**3
     rc = c[1] / numpy.log(q2 / 0.04) * theta + c[2] / ((q2 - q2thr)**2 + c[3]**2)**0.5
 
-    return (ra + rb + rc) / 3
+    result = (ra + rb + rc) / 3
+    error = 0.0078 - 0.013 * x + (0.070 - 0.39 * x + 0.7 * x**2) / (1.7 + q2)
+
+    return result, error
+
+
+def _parton_lhapdf(pid, x, q2, pdf_set, pdfs):
+    vals = numpy.zeros(len(pdfs))
+    for i, pdf in enumerate(pdfs):
+        vals[i] = pdf.xfxQ2(pid, x, q2)
+
+    errors = pdf_set.uncertainty(vals)
+
+    return errors.central, errors.errsymm
+
+
+def f1p_lhapdf(x, q2):
+    r, er = _r(x, q2)
+    f2, ef2 = f2p_lhapdf(x, q2)
+
+    gamma2 = 4 * _m_p**2 * x**2 / q2
+
+    result = f2 * (1 + gamma2) / (2 * x * (1 + r))
+    error = numpy.sqrt((ef2 * (1 + gamma2) / (2 * x * (1 + r)))**2 + (f2 * (1 + gamma2) / (2 * x * (1 + r)**2) * er)**2)
+
+    return result, error
+
+
+def f2p_lhapdf(x, q2):
+    pdf_set = lhapdf.getPDFSet('CT14nnlo')
+    pdfs = pdf_set.mkPDFs()
+
+    d, ed = numpy.empty_like(x), numpy.empty_like(x)
+    dbar, edbar = numpy.empty_like(x), numpy.empty_like(x)
+    u, eu = numpy.empty_like(x), numpy.empty_like(x)
+    ubar, eubar = numpy.empty_like(x), numpy.empty_like(x)
+    s, es = numpy.empty_like(x), numpy.empty_like(x)
+
+    for ix, xx in enumerate(x):
+        d[ix], ed[ix] = _parton_lhapdf(1, xx, q2, pdf_set, pdfs)
+        dbar[ix], edbar[ix] = _parton_lhapdf(-1, xx, q2, pdf_set, pdfs)
+        u[ix], eu[ix] = _parton_lhapdf(2, xx, q2, pdf_set, pdfs)
+        ubar[ix], eubar[ix] = _parton_lhapdf(-2, xx, q2, pdf_set, pdfs)
+        s[ix], es[ix] = _parton_lhapdf(3, xx, q2, pdf_set, pdfs)
+
+    result = ((2 / 3)**2 * (u + ubar) + (1 / 3)**2 * (d + dbar) + (1 / 3)**2 * 2 * s)
+    error = numpy.sqrt((2 / 3)**4 * (eu**2 + eubar**2) + (1 / 3)**4 * (ed**2 + edbar**2) + (1 / 3)**4 * 4 * es**2)
+
+    return result, error
 
 
 def f1p_slac(x, q2):
-    return f2p(x, q2) * (1 + 4 * _m_p**2 * x**2 / q2) / (2 * x * (1 + _r(x, q2)))
+    r, _ = _r(x, q2)
+
+    return f2p_slac(x, q2) * (1 + 4 * _m_p**2 * x**2 / q2) / (2 * x * (1 + r))
 
 
 def f2p_slac(x, q2):
@@ -51,7 +103,7 @@ def f2p_slac(x, q2):
 def g1p_slac(x, q2):
     # SLAC E155
     # Phys. Lett. B493(2000)19, Eq.(5)
-    return x**0.700 * (0.817 + 1.014 * x - 1.489 * x**2) * (1 - 0.04 / q2) * f1p(x, q2)
+    return x**0.700 * (0.817 + 1.014 * x - 1.489 * x**2) * (1 - 0.04 / q2) * f1p_slac(x, q2)
 
 
 def g2p_slac(x, q2):
@@ -72,30 +124,33 @@ def g2p_slac(x, q2):
     return result
 
 
-def f1p(x, q2, *, model='slac', **kwargs):
+def f1p(x, q2, model='slac', **kwargs):
     f1p_func = {
+        'lhapdf': f1p_lhapdf,
         'slac': f1p_slac,
     }.get(model, None)
 
     return f1p_func(x, q2, **kwargs)
 
 
-def f2p(x, q2, *, model='slac', **kwargs):
+def f2p(x, q2, model='slac', **kwargs):
     f2p_func = {
+        'lhapdf': f2p_lhapdf,
         'slac': f2p_slac,
     }.get(model, None)
 
     return f2p_func(x, q2, **kwargs)
 
 
-def g1p(x, q2, *, model='slac', **kwargs):
+def g1p(x, q2, model='slac', **kwargs):
     g1p_func = {
         'slac': g1p_slac,
     }.get(model, None)
 
     return g1p_func(x, q2, **kwargs)
 
-def g2p(x, q2, *, model='slac', **kwargs):
+
+def g2p(x, q2, model='slac', **kwargs):
     g2p_func = {
         'slac': g2p_slac,
     }.get(model, None)

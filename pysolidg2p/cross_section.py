@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 
 # For python 2-3 compatibility
 from __future__ import division, print_function
@@ -6,7 +6,7 @@ from __future__ import division, print_function
 import numpy
 from scipy import constants
 
-from .structure_f import f1p_slac, f2p_slac, g1p_slac, g2p_slac
+from .structure_f import _r, f1p_lhapdf, f2p_lhapdf, f1p_slac, f2p_slac, g1p_slac, g2p_slac
 
 __all__ = ['dxslp', 'dxstp', 'xsp']
 
@@ -22,6 +22,27 @@ def _mott(e, theta):
     cos_theta_2 = numpy.cos(theta / 2)
     sin2_theta_2 = 1 - cos_theta_2**2
     return (_alpha * cos_theta_2 / (2 * e * sin2_theta_2))**2 * _inv_gev_to_mkb
+
+
+def xsp_lhapdf(e, x, q2):
+    # total xs
+    nu = q2 / (2 * _m_p * x)
+    ep = e - nu
+    theta = 2 * numpy.arcsin(numpy.sqrt(q2 / (4 * e * ep)))
+    gamma2 = 4 * _m_p**2 * x**2 / q2
+
+    r, er = _r(x, q2)
+    f1, _ = f1p_lhapdf(x, q2)
+    f2, ef2 = f2p_lhapdf(x, q2)
+
+    A = 2 / _m_p * numpy.tan(theta / 2)**2
+    B = 1 / nu
+    C = (1 + gamma2) / (2 * x * (1 + r))
+    result = _mott(e, theta) * (A * f1 + B * f2)
+    # f1 and f2 are correlated
+    error = _mott(e, theta) * numpy.sqrt(((A * C + B) * ef2)**2 + (A * f2 * C / (1 + r) * er)**2)
+
+    return result, error
 
 
 def xsp_slac(e, x, q2):
@@ -53,15 +74,16 @@ def dxstp_slac(e, x, q2):
     return sigma0 * ep * numpy.sin(theta) * (g1p_slac(x, q2) + 2 * e * g2p_slac(x, q2) / nu)
 
 
-def xsp(e, x, q2, *, model='slac', **kwargs):
+def xsp(e, x, q2, model='slac', **kwargs):
     xsp_func = {
+        'lhapdf': xsp_lhapdf,
         'slac': xsp_slac,
     }.get(model, None)
 
     return xsp_func(e, x, q2, **kwargs)
 
 
-def dxslp(e, x, q2, *, model='slac', **kwargs):
+def dxslp(e, x, q2, model='slac', **kwargs):
     dxslp_func = {
         'slac': dxslp_slac,
     }.get(model, None)
@@ -69,7 +91,7 @@ def dxslp(e, x, q2, *, model='slac', **kwargs):
     return dxslp_func(e, x, q2, **kwargs)
 
 
-def dxstp(e, x, q2, *, model='slac', **kwargs):
+def dxstp(e, x, q2, model='slac', **kwargs):
     dxstp_func = {
         'slac': dxstp_slac,
     }.get(model, None)

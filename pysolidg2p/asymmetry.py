@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 
 # For python 2-3 compatibility
 from __future__ import division, print_function
@@ -33,7 +33,7 @@ def atp_slac(e, x, q2):
     return dxstp_slac(e, x, q2) / (2 * xsp_slac(e, x, q2))
 
 
-def a1p(x, q2, *, model='slac', **kwargs):
+def a1p(x, q2, model='slac', **kwargs):
     a1p_func = {
         'slac': a1p_slac,
     }.get(model, None)
@@ -41,7 +41,7 @@ def a1p(x, q2, *, model='slac', **kwargs):
     return a1p_func(x, q2, **kwargs)
 
 
-def a2p(x, q2, *, model='slac', **kwargs):
+def a2p(x, q2, model='slac', **kwargs):
     a2p_func = {
         'slac': a2p_slac,
     }.get(model, None)
@@ -49,7 +49,7 @@ def a2p(x, q2, *, model='slac', **kwargs):
     return a2p_func(x, q2, **kwargs)
 
 
-def alp(e, x, q2, *, model='slac', **kwargs):
+def alp(e, x, q2, model='slac', **kwargs):
     alp_func = {
         'slac': alp_slac,
     }.get(model, None)
@@ -57,7 +57,7 @@ def alp(e, x, q2, *, model='slac', **kwargs):
     return alp_func(e, x, q2, **kwargs)
 
 
-def atp(e, x, q2, *, model='slac', **kwargs):
+def atp(e, x, q2, model='slac', **kwargs):
     atp_func = {
         'slac': atp_slac,
     }.get(model, None)
