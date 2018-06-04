@@ -1,5 +1,8 @@
 #!/usr/bin/env python
 
+# For python 2-3 compatibility
+from __future__ import division, print_function
+
 import pickle
 
 from matplotlib.backends.backend_pdf import PdfPages
@@ -16,10 +19,12 @@ _m_p = constants.value('proton mass energy equivalent in MeV') * 1e-3
 #
 
 e = 11
-x_binning = {'bins': 20, 'range': (0.0, 1.0)}
-q2_list = [2, 3, 4, 5, 6]
-q2_edges = [1.5, 2.5, 3.5, 4.5, 5.5, 6.5]
+x_binning = {'bins': 20, 'range': (0, 1)}
+q2_binning = {'bins': 50, 'range': (0.9, 10.9)}
 yield_limit = 10000
+beam_pol = 0.9
+target_pol = 0.7
+dilution_factor = 0.13
 
 #
 # tool functions
@@ -38,6 +43,8 @@ def create_bins(binning):
 #
 # main program
 #
+
+q2_list, q2_edges = create_bins(q2_binning)
 
 x_raw, q2_raw, yield_raw = sim_reader.load('yield.txt')
 
@@ -58,10 +65,10 @@ for i, _ in enumerate(q2_list):
     x_min = q2 / (2 * _m_p * (e - ep_min))
     select = (x > x_min) & (yield_ > yield_limit)
     x = x[select]
-    yield_ = yield_[select]
+    yield_ = yield_[select] * 1000
 
     asym = asymmetry.atp(e, x, q2)
-    easym = 1 / numpy.sqrt(yield_)
+    easym = 1 / numpy.sqrt(yield_) / (beam_pol * target_pol * dilution_factor)
 
     xs0 = cross_section.xsp(e, x, q2)
     exs0 = xs0 * (1 / numpy.sqrt(yield_))
@@ -79,7 +86,7 @@ for i, _ in enumerate(q2_list):
     sub_result['q2'] = q2
     sub_result['g2'] = g2
     sub_result['eg2'] = eg2
-    result[str(q2_list[i])] = sub_result
+    result[str(q2)] = sub_result
 
 #
 # output
@@ -91,24 +98,26 @@ with open('g2.pkl', 'wb') as f:
 x_model = numpy.linspace(0, 1, 201)
 
 with PdfPages('x2g2_proj.pdf') as pdf:
-    plt.figure()
+    plt.figure(figsize=(6, 6))
     ax = plt.gca()
     ax.axhline(y=0, linestyle='--', linewidth=0.75, color='k')
     plt.xlabel(r'$x$')
     plt.ylabel(r'$x^2g_2$')
     plt.xlim(0, 1)
-    plt.ylim(-0.04, 0.01)
-    l6, = plt.plot(x_model, x_model**2 * structure_f.g2p(x_model, 6), 'y-', linewidth=0.75)  # q2 = 6
-    p6 = plt.errorbar(result['6']['x'], result['6']['x']**2 * result['6']['g2'], result['6']['x']**2 * result['6']['eg2'], fmt='y.')
-    l5, = plt.plot(x_model, x_model**2 * structure_f.g2p(x_model, 5), 'b-', linewidth=0.75)  # q2 = 5
-    p5 = plt.errorbar(result['5']['x'], result['5']['x']**2 * result['5']['g2'], result['5']['x']**2 * result['5']['eg2'], fmt='b.')
-    l4, = plt.plot(x_model, x_model**2 * structure_f.g2p(x_model, 4), 'g-', linewidth=0.75)  # q2 = 4
-    p4 = plt.errorbar(result['4']['x'], result['4']['x']**2 * result['4']['g2'], result['4']['x']**2 * result['4']['eg2'], fmt='g.')
-    l3, = plt.plot(x_model, x_model**2 * structure_f.g2p(x_model, 3), 'r-', linewidth=0.75)  # q2 = 3
-    p3 = plt.errorbar(result['3']['x'], result['3']['x']**2 * result['3']['g2'], result['3']['x']**2 * result['3']['eg2'], fmt='r.')
-    l2, = plt.plot(x_model, x_model**2 * structure_f.g2p(x_model, 2), 'k-', linewidth=0.75)  # q2 = 2
-    p2 = plt.errorbar(result['2']['x'], result['2']['x']**2 * result['2']['g2'], result['2']['x']**2 * result['2']['eg2'], fmt='k.')
-    plt.legend([(p2, l2), (p3, l3), (p4, l4), (p5, l5), (p6, l6)],
-               [r'$1.5<Q^2<2.5$', r'$2.5<Q^2<3.5$', r'$3.5<Q^2<4.5$', r'$4.5<Q^2<5.5$', r'$5.5<Q^2<6.5$'])
+
+    index_list = [5, 15, 25, 35, 45]
+    color_list = ['k', 'r', 'b', 'g', 'c']
+    markers = []
+    texts = []
+    for color, index in zip(color_list, index_list):
+        l1, = plt.plot(x_model, x_model**2 * structure_f.g2p(x_model, result[str(q2_list[index])]['q2']), '{}-'.format(color), linewidth=0.75)
+        x = result[str(q2_list[index])]['x']
+        g2 = result[str(q2_list[index])]['g2']
+        eg2 = result[str(q2_list[index])]['eg2']
+        p1 = plt.errorbar(x, x**2 * g2, x**2 * eg2, fmt='{}.'.format(color))
+        markers.append((p1, l1))
+        texts.append(r'${}<Q^2<{}$'.format(q2_edges[index], q2_edges[index + 1]))
+
+    plt.legend(markers, texts)
     pdf.savefig(bbox_inches='tight')
     plt.close()
