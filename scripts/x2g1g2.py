@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 
 from matplotlib.backends.backend_pdf import PdfPages
 import matplotlib.pyplot as plt

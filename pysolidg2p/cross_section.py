@@ -6,7 +6,7 @@ from __future__ import division, print_function
 import numpy
 from scipy import constants
 
-from .structure_f import _r, f1p_lhapdf, f2p_lhapdf, f1p_slac, f2p_slac, g1p_slac, g2p_slac
+from .structure_f import r, f1p_lhapdf, f2p_lhapdf, f1p_slac, f2p_slac, g1p_slac, g2p_slac
 
 __all__ = ['dxslp', 'dxstp', 'xsp']
 
@@ -31,16 +31,16 @@ def xsp_lhapdf(e, x, q2):
     theta = 2 * numpy.arcsin(numpy.sqrt(q2 / (4 * e * ep)))
     gamma2 = 4 * _m_p**2 * x**2 / q2
 
-    r, er = _r(x, q2)
+    rr, err = r(x, q2)
     f1, _ = f1p_lhapdf(x, q2)
     f2, ef2 = f2p_lhapdf(x, q2)
 
     A = 2 / _m_p * numpy.tan(theta / 2)**2
     B = 1 / nu
-    C = (1 + gamma2) / (2 * x * (1 + r))
+    C = (1 + gamma2) / (2 * x * (1 + rr))
     result = _mott(e, theta) * (A * f1 + B * f2)
     # f1 and f2 are correlated
-    error = _mott(e, theta) * numpy.sqrt(((A * C + B) * ef2)**2 + (A * f2 * C / (1 + r) * er)**2)
+    error = _mott(e, theta) * numpy.sqrt(((A * C + B) * ef2)**2 + (A * f2 * C / (1 + rr) * err)**2)
 
     return result, error
 

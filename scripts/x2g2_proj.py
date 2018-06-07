@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 import numpy
 from scipy import constants
 
-from pysolidg2p import asymmetry, cross_section, sim_reader, structure_f, tools
+from pysolidg2p import asymmetry, cross_section, experiments, sim_reader, structure_f, tools
 
 _m_p = constants.value('proton mass energy equivalent in MeV') * 1e-3
 
@@ -24,7 +24,7 @@ q2_binning = {'bins': 50, 'range': (0.9, 10.9)}
 yield_limit = 10000
 beam_pol = 0.9
 target_pol = 0.7
-dilution_factor = 0.13
+dilution_factor = 0.15
 
 #
 # tool functions
@@ -38,7 +38,6 @@ def create_bins(binning):
     bin_edges = numpy.linspace(bin_low, bin_high, bins + 1)
 
     return bin_centers, bin_edges
-
 
 #
 # main program
@@ -70,23 +69,33 @@ for i, _ in enumerate(q2_list):
     asym = asymmetry.atp(e, x, q2)
     easym = 1 / numpy.sqrt(yield_) / (beam_pol * target_pol * dilution_factor)
 
-    xs0 = cross_section.xsp(e, x, q2)
-    exs0 = xs0 * (1 / numpy.sqrt(yield_))
+    # method 1
+    #xs0 = cross_section.xsp(e, x, q2)
+    #exs0 = xs0 * (1 / numpy.sqrt(yield_))
 
-    dxsT = 2 * xs0 * asym
-    edxsT = dxsT * numpy.sqrt((easym / asym)**2 + (exs0 / xs0)**2)
+    #dxsT = 2 * xs0 * asym
+    #edxsT = dxsT * numpy.sqrt((easym / asym)**2 + (exs0 / xs0)**2)
 
-    dxsL = cross_section.dxslp(e, x, q2)  # from model
-    edxsL = 0
+    #dxsL = cross_section.dxslp(e, x, q2)  # from model
+    #edxsL = numpy.zeros_like(dxsL)
 
-    g1, g2, eg1, eg2 = tools.dxs_to_g1g2(e, x, q2, dxsL, dxsT, edxsL, edxsT)
+    #g1, g2, eg1, eg2 = tools.dxs_to_g1g2(e, x, q2, dxsL, dxsT, edxsL, edxsT)
+
+    # method 2
+    f1 = structure_f.f1p(x, q2)
+    ef1 = numpy.zeros_like(f1)
+
+    a1 = asymmetry.a1p(x, q2)
+    ea1 = a1 * experiments.e12_06_109(x, q2)
+
+    g2, eg2 = tools.atf1a1_to_g2(e, x, q2, asym, f1, a1, easym, ef1, ea1)
 
     sub_result = {}
     sub_result['x'] = x
     sub_result['q2'] = q2
     sub_result['g2'] = g2
     sub_result['eg2'] = eg2
-    result[str(q2)] = sub_result
+    result[str(round(q2, 3))] = sub_result
 
 #
 # output
@@ -94,8 +103,6 @@ for i, _ in enumerate(q2_list):
 
 with open('g2.pkl', 'wb') as f:
     pickle.dump(result, f)
-
-x_model = numpy.linspace(0, 1, 201)
 
 with PdfPages('x2g2_proj.pdf') as pdf:
     plt.figure(figsize=(6, 6))
@@ -105,12 +112,14 @@ with PdfPages('x2g2_proj.pdf') as pdf:
     plt.ylabel(r'$x^2g_2$')
     plt.xlim(0, 1)
 
+    x_model = numpy.linspace(0, 1, 201)
     index_list = [5, 15, 25, 35, 45]
     color_list = ['k', 'r', 'b', 'g', 'c']
     markers = []
     texts = []
     for color, index in zip(color_list, index_list):
-        l1, = plt.plot(x_model, x_model**2 * structure_f.g2p(x_model, result[str(q2_list[index])]['q2']), '{}-'.format(color), linewidth=0.75)
+        l1, = plt.plot(
+            x_model, x_model**2 * structure_f.g2p(x_model, result[str(round(q2_list[index], 3))]['q2']), '{}-'.format(color), linewidth=0.75)
         x = result[str(q2_list[index])]['x']
         g2 = result[str(q2_list[index])]['g2']
         eg2 = result[str(q2_list[index])]['eg2']

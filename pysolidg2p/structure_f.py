@@ -8,12 +8,22 @@ from scipy import constants, integrate
 
 import lhapdf
 
-__all__ = ['f1p', 'f2p', 'g1p', 'g2p']
+__all__ = ['f1p', 'f2p', 'g1p', 'g2p', 'r']
 
 _m_p = constants.value('proton mass energy equivalent in MeV') * 1e-3
 
 
-def _r(x, q2):
+def _parton_lhapdf(pid, x, q2, pdf_set, pdfs):
+    vals = numpy.zeros(len(pdfs))
+    for i, pdf in enumerate(pdfs):
+        vals[i] = pdf.xfxQ2(pid, x, q2)
+
+    errors = pdf_set.uncertainty(vals)
+
+    return errors.central, errors.errsymm
+
+
+def r(x, q2):
     # SLAC E143
     # Phys. Lett. B452(1999)194
     a = [0, 0.0485, 0.5470, 2.0621, -0.3804, 0.5090, -0.0285]
@@ -33,30 +43,20 @@ def _r(x, q2):
     return result, error
 
 
-def _parton_lhapdf(pid, x, q2, pdf_set, pdfs):
-    vals = numpy.zeros(len(pdfs))
-    for i, pdf in enumerate(pdfs):
-        vals[i] = pdf.xfxQ2(pid, x, q2)
-
-    errors = pdf_set.uncertainty(vals)
-
-    return errors.central, errors.errsymm
-
-
 def f1p_lhapdf(x, q2):
-    r, er = _r(x, q2)
+    rr, err = r(x, q2)
     f2, ef2 = f2p_lhapdf(x, q2)
 
     gamma2 = 4 * _m_p**2 * x**2 / q2
 
-    result = f2 * (1 + gamma2) / (2 * x * (1 + r))
-    error = numpy.sqrt((ef2 * (1 + gamma2) / (2 * x * (1 + r)))**2 + (f2 * (1 + gamma2) / (2 * x * (1 + r)**2) * er)**2)
+    result = f2 * (1 + gamma2) / (2 * x * (1 + rr))
+    error = numpy.sqrt((ef2 * (1 + gamma2) / (2 * x * (1 + rr)))**2 + (f2 * (1 + gamma2) / (2 * x * (1 + rr)**2) * err)**2)
 
     return result, error
 
 
-def f2p_lhapdf(x, q2):
-    pdf_set = lhapdf.getPDFSet('CT14nnlo')
+def f2p_lhapdf(x, q2, select='CT14nnlo'):
+    pdf_set = lhapdf.getPDFSet(select)
     pdfs = pdf_set.mkPDFs()
 
     d, ed = numpy.empty_like(x), numpy.empty_like(x)
@@ -79,9 +79,9 @@ def f2p_lhapdf(x, q2):
 
 
 def f1p_slac(x, q2):
-    r, _ = _r(x, q2)
+    rr, _ = r(x, q2)
 
-    return f2p_slac(x, q2) * (1 + 4 * _m_p**2 * x**2 / q2) / (2 * x * (1 + r))
+    return f2p_slac(x, q2) * (1 + 4 * _m_p**2 * x**2 / q2) / (2 * x * (1 + rr))
 
 
 def f2p_slac(x, q2):
