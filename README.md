@@ -1,1 +1,1 @@
-# Scripts for SoLID g2p/d2p Proposal
+# Scripts for SoLID Inclusive Spin Structure Proposal
